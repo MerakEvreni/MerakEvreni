@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Eymen & Liva Uzay Görevi – V3.1</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    height:100%;
+    overflow:hidden;
+    background:#000010;
+    font-family:-apple-system,system-ui,sans-serif;
+    color:#fff;
+  }
+  #game{
+    position:fixed;
+    inset:0;
+    touch-action:none;
+  }
+  .hud{
+    position:fixed;
+    top:6px;
+    left:8px;
+    right:48px;
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    text-shadow:0 0 4px #000;
+    pointer-events:none;
+    z-index:5;
+  }
+  .hud-left, .hud-right{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .center-msg{
+    position:fixed;
+    bottom:8px;
+    left:0;
+    right:0;
+    text-align:center;
+    font-size:11px;
+    opacity:0.8;
+    text-shadow:0 0 4px #000;
+    pointer-events:none;
+    z-index:4;
+  }
+  .popup-msg{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:22px;
+    font-weight:700;
+    text-shadow:0 0 14px #000;
+    pointer-events:none;
+    z-index:20;
+  }
+  .corner-holo{
+    position:fixed;
+    top:26px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:11px;
+    background:rgba(0,0,32,0.85);
+    border:1px solid rgba(120,200,255,0.7);
+    box-shadow:0 0 10px rgba(0,180,255,0.6);
+    opacity:0;
+    pointer-events:none;
+    z-index:15;
+  }
+  .gameover-panel{
+    position:fixed;
+    inset:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:rgba(0,0,0,0.7);
+    z-index:30;
+    flex-direction:column;
+    gap:8px;
+    text-align:center;
+  }
+  .gameover-panel h1{
+    font-size:22px;
+    margin-bottom:4px;
+  }
+  .gameover-panel button{
+    margin-top:2px;
+    padding:6px 22px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.6);
+    background:radial-gradient(circle at top,#123,#000);
+    color:#e8ffff;
+    font-size:13px;
+  }
+
+  .start-screen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:radial-gradient(circle at top,#05051a,#000010 55%,#000000);
+    z-index:40;
+    text-align:center;
+    gap:10px;
+  }
+  .start-screen h1{
+    font-size:24px;
+    margin-bottom:4px;
+  }
+  .start-screen p{
+    font-size:12px;
+    opacity:0.9;
+  }
+  .start-screen button{
+    margin-top:4px;
+    padding:7px 28px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.7);
+    background:radial-gradient(circle at top,#1c2740,#050515);
+    color:#e8ffff;
+    font-size:13px;
+  }
+
+  .top-buttons{
+    position:fixed;
+    top:4px;
+    right:6px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    z-index:10;
+  }
+  .top-buttons button{
+    width:30px;
+    height:30px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.6);
+    background:rgba(10,10,26,0.9);
+    color:#fff;
+    font-size:16px;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="hud">
+  <div class="hud-left">
+    <div id="stageText">Stage: 1 / 10</div>
+    <div id="levelText">Silah Level: 1</div>
+    <div id="hpText">HP: ❤️❤️❤️</div>
+  </div>
+  <div class="hud-right" style="text-align:right;">
+    <div id="scoreText">Skor: 0</div>
+    <div id="bestText">Rekor: 0</div>
+    <div id="shieldText">Kalkan: Yok</div>
+    <div id="modeText">Mod: Görev</div>
+  </div>
+</div>
+
+<div class="top-buttons">
+  <button id="pauseBtn">⏸</button>
+  <button id="soundBtn">🔊</button>
+</div>
+
+<div class="center-msg">
+  Parmağını alt tarafta sağa–sola sürükle → gemi hareket eder. Ateş otomatik 🔫
+</div>
+
+<div class="corner-holo" id="holoMsg"></div>
+
+<div class="gameover-panel" id="gameOverPanel" style="display:none;">
+  <h1 id="gameOverTitle">GAME OVER</h1>
+  <div id="gameOverSummary" style="font-size:12px;opacity:0.9;"></div>
+  <button id="storyBtn">Görev Modu</button>
+  <button id="endlessBtn">Sonsuz Mod</button>
+  <button id="eliteBtn" style="display:none;">Elite Mod 🔥</button>
+</div>
+
+<div class="start-screen" id="startScreen">
+  <h1>Eymen & Liva Uzay Görevi</h1>
+  <p>Mod seç ve Başla. Önce Görev Modu’nu bitir, sonra Sonsuz ve Elite açılır.</p>
+  <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">
+    <button id="startStory">Görev Modu Başlat</button>
+    <button id="startEndless" disabled style="opacity:0.4;">Sonsuz Mod (Kilidi Kapalı)</button>
+    <button id="startElite" disabled style="opacity:0.2;">Elite Mod (10.000 Skor Sonrası)</button>
+  </div>
+</div>
+
+<script>
+// === Canvas ===
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let W = window.innerWidth;
+let H = window.innerHeight;
+let dpr = window.devicePixelRatio || 1;
+function resize(){
+  W = window.innerWidth;
+  H = window.innerHeight;
+  dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize', resize);
+resize();   // ÖNEMLİ: gerçekten çağırıyoruz
+
+// === HUD elemanları ===
+const stageText = document.getElementById('stageText');
+const levelText = document.getElementById('levelText');
+const hpText = document.getElementById('hpText');
+const scoreText = document.getElementById('scoreText');
+const bestText = document.getElementById('bestText');
+const shieldText = document.getElementById('shieldText');
+const modeText = document.getElementById('modeText');
+const holoMsg = document.getElementById('holoMsg');
+const gameOverPanel = document.getElementById('gameOverPanel');
+const gameOverTitle = document.getElementById('gameOverTitle');
+const gameOverSummary = document.getElementById('gameOverSummary');
+const storyBtn = document.getElementById('storyBtn');
+const endlessBtn = document.getElementById('endlessBtn');
+const eliteBtn = document.getElementById('eliteBtn');
+const startScreen = document.getElementById('startScreen');
+const startStory = document.getElementById('startStory');
+const startEndless = document.getElementById('startEndless');
+const startElite = document.getElementById('startElite');
+const pauseBtn = document.getElementById('pauseBtn');
+const soundBtn = document.getElementById('soundBtn');
+
+// === Ses sistemi ===
+let audioCtx = null;
+let soundEnabled = true;
+function ensureAudioCtx(){
+  if(!audioCtx){
+    try{
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }catch(e){}
+  }
+}
+function playBeep(freq,duration=0.06,type="square",vol=0.18){
+  if(!audioCtx || !soundEnabled) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = vol;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  osc.start(now);
+  osc.stop(now+duration);
+}
+function sHit(){ playBeep(200,0.07,"sawtooth",0.18); }
+function sExplode(){ playBeep(130,0.12,"sawtooth",0.2); }
+function sPower(){ playBeep(650,0.08,"triangle",0.18); }
+function sLevelUp(){ playBeep(750,0.08,"square",0.18); playBeep(950,0.08,"square",0.18); }
+
+soundBtn.addEventListener('click',()=>{
+  ensureAudioCtx();
+  soundEnabled = !soundEnabled;
+  soundBtn.textContent = soundEnabled ? "🔊" : "🔇";
+});
+
+// === Oyun durumu ===
+const maxStageStory = 10;
+let gameMode = "story"; // "story","endless","elite"
+let gameState = "menu"; // "menu","playing","paused","gameover","won"
+let unlockedEndless = false;
+let unlockedElite = false;
+
+const player = {
+  x: W/2,
+  y: H-80,
+  radius: 18,
+  hp: 3,
+  maxHp: 3,
+  shield: 0,
+  weaponLevel: 1,
+  fireTier: 0,
+  baseFireDelay: 260,
+  pattern: 1
+};
+
+let stage = 1;
+let score = 0;
+let bestScore = 0;
+let smallKillHeat = 0;
+
+let bullets = [];
+let enemyBullets = [];
+let asteroids = [];
+let stars = [];
+let powerups = [];
+let helpers = [];
+
+let lastTime = performance.now();
+let fireTimer = 0;
+let spawnTimer = 0;
+let superMode = null; // "eymen","liva"
+let superModeTimer = 0;
+let stageSmallKills = 0;
+let stageDamageTaken = 0;
+
+// AFK takibi
+let idleTime = 0;
+let lastPlayerX = W/2;
+
+let holoFadeTimeout = null;
+function showHoloMessage(text){
+  holoMsg.textContent = text;
+  holoMsg.style.opacity = "1";
+  if(holoFadeTimeout) clearTimeout(holoFadeTimeout);
+  holoFadeTimeout = setTimeout(()=>{ holoMsg.style.opacity="0"; }, 1800);
+}
+function showPopup(text){
+  const div = document.createElement('div');
+  div.className = "popup-msg";
+  div.textContent = text;
+  document.body.appendChild(div);
+  let opacity = 1;
+  const fade = ()=>{
+    opacity -= 0.03;
+    if(opacity<=0){
+      document.body.removeChild(div);
+      return;
+    }
+    div.style.opacity = opacity.toString();
+    requestAnimationFrame(fade);
+  };
+  setTimeout(()=>requestAnimationFrame(fade),400);
+}
+
+// Yıldız arka planı
+function initStars(){
+  stars = [];
+  const count = Math.floor((W*H)/6000);
+  for(let i=0;i<count;i++){
+    stars.push({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      speed: 15 + Math.random()*40,
+      size: 1 + Math.random()*1.5
+    });
+  }
+}
+initStars();
+
+// HUD
+function updateHUD(){
+  if(gameMode==="story"){
+    stageText.textContent = "Stage: " + stage + " / " + maxStageStory;
+    modeText.textContent  = "Mod: Görev";
+  }else if(gameMode==="endless"){
+    stageText.textContent = "Stage: Sonsuz";
+    modeText.textContent  = "Mod: Sonsuz";
+  }else{
+    stageText.textContent = "Stage: Elite";
+    modeText.textContent  = "Mod: Elite";
+  }
+  levelText.textContent  = "Silah Level: " + player.weaponLevel;
+  scoreText.textContent  = "Skor: " + score;
+  bestText.textContent   = "Rekor: " + bestScore;
+  hpText.textContent     = "HP: " + "❤️".repeat(player.hp) + " ".repeat(player.maxHp-player.hp);
+  shieldText.textContent = "Kalkan: " + (player.shield>0 ? player.shield + " darbe" : "Yok");
+}
+
+// Kontroller – sürükleme
+let pointerDown = false;
+function updatePlayerFromPointer(x){
+  player.x = Math.max(player.radius+10, Math.min(W-player.radius-10, x));
+}
+canvas.addEventListener('pointerdown',e=>{
+  if(gameState==="menu") return;
+  ensureAudioCtx();
+  if(gameState==="playing"){
+    pointerDown = true;
+    updatePlayerFromPointer(e.clientX);
+  }
+});
+canvas.addEventListener('pointermove',e=>{
+  if(gameState!=="playing") return;
+  if(pointerDown) updatePlayerFromPointer(e.clientX);
+});
+canvas.addEventListener('pointerup',()=>{ pointerDown=false; });
+canvas.addEventListener('pointercancel',()=>{ pointerDown=false; });
+
+// Pause / Play
+pauseBtn.addEventListener('click',()=>{
+  if(gameState==="menu" || gameState==="gameover" || gameState==="won") return;
+  if(gameState==="playing"){
+    gameState="paused";
+    pauseBtn.textContent="▶";
+  }else if(gameState==="paused"){
+    gameState="playing";
+    pauseBtn.textContent="⏸";
+  }
+});
+
+// Ateş
+function currentFireDelay(){
+  let delay = player.baseFireDelay - player.fireTier*30;
+  if(delay<110) delay=110;
+  if(superMode==="eymen") delay*=0.5;
+  if(gameMode==="elite") delay*=0.7;
+  return delay;
+}
+function bulletPattern(){
+  let p = player.pattern;
+  if(superMode==="eymen") p=7;
+  else if(superMode==="liva") p=Math.max(player.pattern+1,3);
+  return p;
+}
+function shoot(){
+  const pattern = bulletPattern();
+  const speed = -520;
+  let mult = (gameMode==="elite")?1.2:1;
+  const base = (player.weaponLevel===1?12:player.weaponLevel===2?18:26)*mult;
+  const extra = superMode==="eymen"?10:0;
+  const power = base+extra;
+  const spread = 11;
+  const cx = player.x;
+  const xs = [];
+  if(pattern===1){
+    xs.push(cx);
+  }else{
+    const half=(pattern-1)/2;
+    for(let i=-half;i<=half;i++) xs.push(cx+i*spread);
+  }
+  for(const x of xs){
+    bullets.push({x,y:player.y-player.radius-4,vy:speed,power});
+  }
+  for(const h of helpers){
+    bullets.push({x:h.x,y:h.y-8,vy:speed*0.9,power:base*0.7});
+  }
+}
+
+// Asteroid & power-up
+function spawnAsteroid(){
+  let difFactor;
+  if(gameMode==="story"){
+    difFactor = 0.6 + stage*0.1;
+  }else if(gameMode==="endless"){
+    difFactor = 0.8 + Math.min(stage,25)*0.07;
+  }else{
+    difFactor = 1.2 + Math.min(stage,40)*0.08;
+  }
+  const r = Math.random();
+  let type;
+  if((gameMode!=="story" && r>0.9) || (gameMode==="story" && stage>=8 && r>0.92)){
+    type="boss";
+  }else if(r<0.5){
+    type="small";
+  }else if(r<0.82){
+    type="medium";
+  }else{
+    type="large";
+  }
+
+  let radius,hp,baseVy,scoreGain;
+  if(type==="small"){
+    radius = 16+Math.random()*7;
+    hp = radius*(gameMode==="elite"?4:3.2);
+    baseVy = gameMode==="elite"?140:110;
+    scoreGain = gameMode==="elite"?18:10;
+  }else if(type==="medium"){
+    radius = 26+Math.random()*10;
+    hp = radius*(gameMode==="elite"?5.2:4.0);
+    baseVy = gameMode==="elite"?120:95;
+    scoreGain = gameMode==="elite"?40:24;
+  }else if(type==="large"){
+    radius = 34+Math.random()*18;
+    hp = radius*(gameMode==="elite"?6.2:4.8);
+    baseVy = gameMode==="elite"?105:85;
+    scoreGain = gameMode==="elite"?80:50;
+  }else{
+    radius = 48+Math.random()*14;
+    hp = (gameMode==="elite"?1600:1200) + difFactor*230;
+    baseVy = gameMode==="elite"?75:55;
+    scoreGain = gameMode==="elite"?600:400;
+  }
+
+  const vy = baseVy*difFactor;
+  const vx = (Math.random()*2-1) * (25+difFactor*7);
+  const zigzag = Math.random()<0.65;
+  const amp = 18+Math.random()*35;
+  const freq = 1.2+Math.random()*1.6;
+  const canShoot = (type!=="small") && (Math.random()<(gameMode==="elite"?0.9:0.55));
+  const shootCooldown = 0.7+Math.random()*1.0;
+
+  // AFK engelleme: uzun süre kıpırdamazsa asteroidi oyuncunun hizasına doğur
+  let spawnX = 40 + Math.random()*(W-80);
+  const idleLimit = (gameMode==="elite"?1.2:2.0);
+  if(idleTime > idleLimit){
+    spawnX = player.x + (Math.random()*80 - 40);
+  }
+  spawnX = Math.max(40, Math.min(W-40, spawnX));
+
+  asteroids.push({
+    x: spawnX,
+    y: -radius-30,
+    vx,vy,
+    radius,
+    hp,maxHp:hp,
+    type,
+    scoreGain,
+    zigzag,amp,phase:Math.random()*Math.PI*2,freq,
+    canShoot,shootTimer:shootCooldown
+  });
+}
+
+function spawnPowerUp(x,y){
+  let dropChance;
+  if(gameMode==="story") dropChance=0.25;
+  else if(gameMode==="endless") dropChance=0.18;
+  else dropChance=0.12;
+  if(Math.random()>dropChance) return;
+
+  const r = Math.random();
+  let kind;
+  if(r<0.3) kind="heart";
+  else if(r<0.55) kind="shield";
+  else if(r<0.8) kind="eymen";
+  else kind="liva";
+
+  powerups.push({x,y,vy:80,radius:10,kind});
+}
+
+function spawnEnemyShot(a){
+  if(!a.canShoot) return;
+  const baseProb = gameMode==="elite"?0.9:(gameMode==="endless"?0.55:0.35);
+  if(Math.random()>baseProb) return;
+  enemyBullets.push({
+    x:a.x,
+    y:a.y+a.radius-4,
+    vy:(gameMode==="elite"?260:220)+Math.random()*140,
+    radius:4
+  });
+}
+
+// Çizimler
+function drawBackground(dt){
+  ctx.fillStyle="#000010";
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#a8c4ff";
+  for(const s of stars){
+    s.y += s.speed*dt;
+    if(s.y>H){
+      s.y=0; s.x=Math.random()*W;
+    }
+    ctx.fillRect(s.x,s.y,s.size,s.size);
+  }
+}
+
+function drawPlayer(){
+  const g = ctx.createLinearGradient(player.x,player.y-26,player.x,player.y+24);
+  if(gameMode==="elite"){
+    g.addColorStop(0,"#ffe6ff");
+    g.addColorStop(0.5,"#ff4fb0");
+    g.addColorStop(1,"#3a0018");
+  }else if(superMode==="eymen"){
+    g.addColorStop(0,"#e9ffff");
+    g.addColorStop(0.5,"#4ff0ff");
+    g.addColorStop(1,"#001428");
+  }else if(superMode==="liva"){
+    g.addColorStop(0,"#fff5ff");
+    g.addColorStop(0.5,"#ff9ce8");
+    g.addColorStop(1,"#2a0018");
+  }else if(player.weaponLevel===1){
+    g.addColorStop(0,"#f0f8ff");
+    g.addColorStop(0.5,"#4fd4ff");
+    g.addColorStop(1,"#021021");
+  }else if(player.weaponLevel===2){
+    g.addColorStop(0,"#f4fff0");
+    g.addColorStop(0.5,"#7cff5e");
+    g.addColorStop(1,"#021c10");
+  }else{
+    g.addColorStop(0,"#fff0ff");
+    g.addColorStop(0.5,"#ff7ce5");
+    g.addColorStop(1,"#220010");
+  }
+  ctx.fillStyle=g;
+  const r = player.radius;
+
+  // gövde
+  ctx.beginPath();
+  ctx.moveTo(player.x,player.y-r-8);
+  ctx.lineTo(player.x-r*0.7,player.y+r+4);
+  ctx.lineTo(player.x+r*0.7,player.y+r+4);
+  ctx.closePath();
+  ctx.fill();
+
+  // yan kanatlar
+  ctx.fillStyle="rgba(255,255,255,0.12)";
+  ctx.beginPath();
+  ctx.moveTo(player.x-r*0.9,player.y+r*0.1);
+  ctx.lineTo(player.x-r*1.4,player.y+r*0.9);
+  ctx.lineTo(player.x-r*0.3,player.y+r*0.9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(player.x+r*0.9,player.y+r*0.1);
+  ctx.lineTo(player.x+r*1.4,player.y+r*0.9);
+  ctx.lineTo(player.x+r*0.3,player.y+r*0.9);
+  ctx.closePath();
+  ctx.fill();
+
+  // motor ışığı
+  const thr = ctx.createLinearGradient(player.x,player.y+r+4,player.x,player.y+r+26);
+  thr.addColorStop(0,"rgba(255,200,120,0.9)");
+  thr.addColorStop(1,"rgba(255,120,40,0)");
+  ctx.fillStyle=thr;
+  ctx.beginPath();
+  ctx.moveTo(player.x-6,player.y+r+4);
+  ctx.lineTo(player.x+6,player.y+r+4);
+  ctx.lineTo(player.x,player.y+r+26);
+  ctx.closePath();
+  ctx.fill();
+
+  // kokpit
+  ctx.fillStyle="rgba(200,240,255,0.9)";
+  ctx.beginPath();
+  ctx.ellipse(player.x,player.y-r*0.4,r*0.4,r*0.6,0,0,Math.PI*2);
+  ctx.fill();
+
+  // kalkan
+  if(player.shield>0){
+    ctx.strokeStyle=superMode==="liva"?"rgba(255,180,255,0.9)":"rgba(120,220,255,0.9)";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(player.x,player.y,r+12,0,Math.PI*2);
+    ctx.stroke();
+  }
+}
+
+function drawHelpers(dt){
+  for(const h of helpers){
+    h.x = player.x + h.offsetX;
+    h.y = player.y + h.offsetY;
+    ctx.fillStyle = h.kind==="eymen" ? "#7cf4ff" : "#ffb6f5";
+    ctx.beginPath();
+    ctx.arc(h.x,h.y,8,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawBullets(dt){
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    b.y += b.vy*dt;
+    if(b.y<-20){ bullets.splice(i,1); continue;}
+    const c =
+      superMode==="eymen"?"#7cf4ff":
+      superMode==="liva"?"#ffb6f5":
+      player.weaponLevel===1?"#7cf4ff":
+      player.weaponLevel===2?"#b4ff7c":
+      "#ff7ce5";
+    ctx.strokeStyle=c;
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.moveTo(b.x,b.y);
+    ctx.lineTo(b.x,b.y+10);
+    ctx.stroke();
+  }
+}
+
+function drawEnemyBullets(dt){
+  ctx.strokeStyle="#ff944f";
+  ctx.lineWidth=2.5;
+  for(let i=enemyBullets.length-1;i>=0;i--){
+    const e=enemyBullets[i];
+    e.y += e.vy*dt;
+    if(e.y>H+20){ enemyBullets.splice(i,1); continue; }
+    ctx.beginPath();
+    ctx.moveTo(e.x,e.y-6);
+    ctx.lineTo(e.x,e.y+4);
+    ctx.stroke();
+  }
+}
+
+function drawAsteroids(dt){
+  for(let i=asteroids.length-1;i>=0;i--){
+    const a=asteroids[i];
+    a.x += a.vx*dt;
+    a.y += a.vy*dt;
+    if(a.zigzag){
+      a.phase += a.freq*dt;
+      a.x += Math.sin(a.phase)*a.amp*dt;
+    }
+    if(a.canShoot){
+      a.shootTimer -= dt;
+      if(a.shootTimer<=0){
+        spawnEnemyShot(a);
+        a.shootTimer = 0.8+Math.random()*1.1;
+      }
+    }
+    if(a.y-a.radius>H+80 || a.x+a.radius<-80 || a.x-a.radius>W+80){
+      asteroids.splice(i,1); continue;
+    }
+    const g = ctx.createRadialGradient(a.x-6,a.y-6,4,a.x,a.y,a.radius+6);
+    if(a.type==="boss"){
+      g.addColorStop(0,"#fef8f0");
+      g.addColorStop(0.4,"#d0c0b0");
+      g.addColorStop(1,"#4b3f38");
+    }else{
+      g.addColorStop(0,"#f5f5f5");
+      g.addColorStop(0.45,"#9b948b");
+      g.addColorStop(1,"#3b3530");
+    }
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(a.x,a.y,a.radius,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle="rgba(20,15,10,0.6)";
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(a.x-a.radius*0.25,a.y-a.radius*0.35);
+    ctx.lineTo(a.x+a.radius*0.15,a.y+a.radius*0.15);
+    ctx.moveTo(a.x+a.radius*0.3,a.y-a.radius*0.1);
+    ctx.lineTo(a.x-a.radius*0.2,a.y+a.radius*0.30);
+    ctx.stroke();
+  }
+}
+
+function drawPowerUps(dt){
+  for(let i=powerups.length-1;i>=0;i--){
+    const p=powerups[i];
+    p.y += p.vy*dt;
+    if(p.y>H+20){ powerups.splice(i,1); continue;}
+    if(p.kind==="heart") ctx.fillStyle="#ff5f8e";
+    else if(p.kind==="shield") ctx.fillStyle="#7cf4ff";
+    else if(p.kind==="eymen") ctx.fillStyle="#4cf0ff";
+    else ctx.fillStyle="#ffb6f5";
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.radius,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// Çarpışmalar
+function circleHit(ax,ay,ar,bx,by,br){
+  const dx=ax-bx, dy=ay-by, r=ar+br;
+  return dx*dx+dy*dy<r*r;
+}
+
+function handleBulletAsteroidCollisions(){
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    let hit=false;
+    for(let j=asteroids.length-1;j>=0;j--){
+      const a=asteroids[j];
+      if(circleHit(a.x,a.y,a.radius,b.x,b.y,6)){
+        hit=true;
+        a.hp -= b.power;
+        if(a.hp<=0){
+          score += a.scoreGain*(gameMode==="elite"?2:1);
+          stageSmallKills += (a.type==="small")?1:0;
+          if(a.type==="small"){
+            smallKillHeat++;
+            const maxTier = gameMode==="elite"?5:4;
+            if(smallKillHeat>=5){
+              smallKillHeat=0;
+              if(player.fireTier<maxTier){
+                player.fireTier++;
+                showPopup("Ateş hızlandı!");
+                sLevelUp();
+              }
+            }
+          }
+          if(a.type==="medium" && player.pattern<2){
+            player.pattern=2;
+            player.weaponLevel=Math.max(player.weaponLevel,2);
+            showPopup("2'li atış açıldı!");
+            sLevelUp();
+          }
+          if(a.type==="large" && player.pattern<3){
+            player.pattern=3;
+            player.weaponLevel=3;
+            showPopup("3'lü atış açıldı!");
+            sLevelUp();
+          }
+          if(a.type==="boss"){
+            const chooser = Math.random()<0.5?"eymen":"liva";
+            superMode = chooser;
+            superModeTimer = (gameMode==="elite"?8:10);
+            showPopup(chooser==="eymen"?"Eymen Fury Mod!":"Liva Angel Mod!");
+            showHoloMessage(
+              chooser==="eymen"
+              ?"Eymen: Abi şimdi uçur onları!"
+              :"Liva: Hadi, hepsini temizle! ✨"
+            );
+          }
+          spawnPowerUp(a.x,a.y);
+          sExplode();
+          asteroids.splice(j,1);
+          checkStageProgress();
+          checkUnlocks();
+        }else{
+          sHit();
+        }
+        break;
+      }
+    }
+    if(hit) bullets.splice(i,1);
+  }
+}
+
+function damagePlayer(){
+  if(player.shield>0){
+    player.shield--;
+    showPopup("Kalkan darbe aldı!");
+    sHit();
+  }else{
+    player.hp--;
+    stageDamageTaken++;
+    sHit();
+    showPopup("Çarpıldın!");
+    if(player.hp===1){
+      showHoloMessage("Liva: Tek can kaldı, dikkat et!");
+    }
+    if(player.hp<=0){
+      onPlayerDead();
+    }
+  }
+}
+
+function handlePlayerAsteroidCollisions(){
+  for(let i=asteroids.length-1;i>=0;i--){
+    const a=asteroids[i];
+    if(circleHit(a.x,a.y,a.radius,player.x,player.y,player.radius)){
+      asteroids.splice(i,1);
+      damagePlayer();
+      if(gameState!=="playing") return;
+    }
+  }
+}
+function handleEnemyBulletCollisions(){
+  for(let i=enemyBullets.length-1;i>=0;i--){
+    const e=enemyBullets[i];
+    if(circleHit(e.x,e.y,e.radius,player.x,player.y,player.radius)){
+      enemyBullets.splice(i,1);
+      damagePlayer();
+      if(gameState!=="playing") return;
+    }
+  }
+}
+function handlePlayerPowerUpCollisions(){
+  for(let i=powerups.length-1;i>=0;i--){
+    const p=powerups[i];
+    if(circleHit(p.x,p.y,p.radius,player.x,player.y,player.radius+2)){
+      if(p.kind==="heart"){
+        if(player.hp<player.maxHp){
+          player.hp++;
+          showPopup("Can +1");
+          sPower();
+        }
+      }else if(p.kind==="shield"){
+        player.shield=Math.min(player.shield+1,2);
+        showPopup("Kalkan aldın!");
+        sPower();
+      }else if(p.kind==="eymen"){
+        if(gameMode!=="elite" || Math.random()<0.5){
+          helpers.push({kind:"eymen",offsetX:-26,offsetY:-10,timer:10});
+          showPopup("Eymen gemisi sana katıldı!");
+          showHoloMessage("Eymen: Abi yanındayım! 😎");
+          sPower();
+        }
+      }else if(p.kind==="liva"){
+        helpers.push({kind:"liva",offsetX:26,offsetY:-10,timer:10});
+        if(player.hp<player.maxHp) player.hp++;
+        player.shield=Math.min(player.shield+1,2);
+        showPopup("Liva seni koruyor!");
+        showHoloMessage("Liva: Seni bırakmam! 💖");
+        sPower();
+      }
+      powerups.splice(i,1);
+    }
+  }
+}
+
+// Stage & unlock
+function checkStageProgress(){
+  if(gameMode==="story"){
+    const targetPerStage=260;
+    const newStage=Math.min(maxStageStory,Math.floor(score/targetPerStage)+1);
+    if(newStage>stage){
+      stage=newStage;
+      showPopup("Stage " + stage + "!");
+      if(stage===3){
+        showHoloMessage("Eymen: 15 küçük asteroid indir!");
+        stageSmallKills=0; stageDamageTaken=0;
+      }else if(stage===6){
+        showHoloMessage("Liva: Bu stage'de hasar alma!");
+        stageSmallKills=0; stageDamageTaken=0;
+      }else if(stage===9){
+        showHoloMessage("Eymen: Büyük boss yaklaşıyor!");
+      }
+    }
+    if(stage===3 && stageSmallKills>=15){
+      showPopup("Eymen görevi tamam! Ateş daha da hızlandı!");
+      player.fireTier=Math.min(player.fireTier+1,4);
+      stageSmallKills=-999; sLevelUp();
+    }
+    if(stage===6 && stageDamageTaken===0 && score>=targetPerStage*5+60){
+      showPopup("Liva görevi tamam! Çift kalkan!");
+      player.shield=2; stageDamageTaken=-1; sLevelUp();
+    }
+    if(stage===maxStageStory && score>=targetPerStage*maxStageStory+260){
+      onGameWon();
+    }
+  }else{
+    const newStage=Math.min(999,Math.floor(score/350)+1);
+    if(newStage>stage){
+      stage=newStage;
+      if(gameMode==="endless") showPopup("Stage " + stage + " (Sonsuz)");
+      else showPopup("Stage " + stage + " (Elite)");
+    }
+  }
+}
+
+function checkUnlocks(){
+  if(gameMode==="endless" && !unlockedElite && score>=10000){
+    unlockedElite=true;
+    showPopup("ELITE MOD AÇILDI! 🔓");
+    showHoloMessage("Eymen & Liva: Elite mod artık hazır!");
+    startElite.disabled=false;
+    startElite.style.opacity="1";
+    eliteBtn.style.display="inline-block";
+  }
+}
+
+// Game over / win
+function onPlayerDead(){
+  gameState="gameover";
+  if(score>bestScore) bestScore=score;
+  updateHUD();
+  let summary="";
+  if(gameMode==="story"){
+    summary="Görev Modu'nda Stage " + stage + " seviyesinde " + score + " skor yaptın.";
+  }else if(gameMode==="endless"){
+    summary="Sonsuz modda " + score + " skor yaptın.";
+  }else{
+    summary="Elite modda " + score + " skor yaptın.";
+  }
+  gameOverTitle.textContent="GAME OVER";
+  gameOverSummary.textContent=summary;
+  gameOverPanel.style.display="flex";
+}
+function onGameWon(){
+  gameState="won";
+  if(score>bestScore) bestScore=score;
+  updateHUD();
+  gameOverTitle.textContent="GÖREVİ BİTİRDİN!";
+  gameOverSummary.textContent="Tebrikler! 10. Stage'i geçtin. Sonsuz Mod açıldı.";
+  unlockedEndless=true;
+  startEndless.disabled=false;
+  startEndless.style.opacity="1";
+  gameOverPanel.style.display="flex";
+}
+
+// Reset & başlat
+function resetCommon(){
+  bullets=[]; enemyBullets=[]; asteroids=[]; powerups=[]; helpers=[];
+  smallKillHeat=0; stageSmallKills=0; stageDamageTaken=0;
+  player.x=W/2; player.y=H-80;
+  player.shield=0; player.pattern=1; player.weaponLevel=1; player.fireTier=0;
+  superMode=null; superModeTimer=0;
+  fireTimer=0; spawnTimer=0;
+  idleTime=0; lastPlayerX=player.x;
+  pauseBtn.textContent="⏸";
+}
+
+function startRun(mode){
+  ensureAudioCtx();
+  gameMode=mode;
+  stage=1;
+  score=0;
+  player.hp = (mode==="elite"?1:player.maxHp);
+  resetCommon();
+  gameState="playing";
+  startScreen.style.display="none";
+  gameOverPanel.style.display="none";
+  if(mode==="story"){
+    showHoloMessage("Eymen & Liva: Görev başlıyor!");
+  }else if(mode==="endless"){
+    showHoloMessage("Sonsuz Mod: Ne kadar dayanacaksın?");
+  }else{
+    showHoloMessage("ELITE MOD: Şansın bol olsun… 😈");
+  }
+}
+
+// Başlangıç ekranı
+startStory.addEventListener('click',()=>startRun("story"));
+startEndless.addEventListener('click',()=>{
+  if(!unlockedEndless){
+    showHoloMessage("Önce Görev Modu'nu bitir.");
+    return;
+  }
+  startRun("endless");
+});
+startElite.addEventListener('click',()=>{
+  if(!unlockedElite){
+    showHoloMessage("Önce Sonsuz modda 10.000 skor yap.");
+    return;
+  }
+  startRun("elite");
+});
+
+// Gameover ekranı
+storyBtn.addEventListener('click',()=>{ startRun("story"); });
+endlessBtn.addEventListener('click',()=>{
+  if(!unlockedEndless){
+    showHoloMessage("Önce Görev Modu'nu bitir.");
+  }else startRun("endless");
+});
+eliteBtn.addEventListener('click',()=>{
+  if(!unlockedElite){
+    showHoloMessage("Önce Sonsuz modda 10.000 skor yap.");
+  }else startRun("elite");
+});
+
+// Ana loop
+function loop(now){
+  const dt=(now-lastTime)/1000;
+  lastTime=now;
+  drawBackground(dt);
+
+  if(gameState==="playing"){
+    // AFK süresi güncelle
+    if(player.x === lastPlayerX){
+      idleTime += dt;
+    }else{
+      idleTime = 0;
+      lastPlayerX = player.x;
+    }
+
+    fireTimer+=dt;
+    spawnTimer+=dt;
+
+    const delay=currentFireDelay();
+    if(fireTimer>delay/1000){
+      fireTimer=0;
+      shoot();
+    }
+
+    let baseSpawn;
+    if(gameMode==="story") baseSpawn=0.95-(stage-1)*0.06;
+    else if(gameMode==="endless") baseSpawn=0.9-(stage-1)*0.025;
+    else baseSpawn=0.85-(stage-1)*0.03;
+    const spawnInterval=Math.max(0.28,baseSpawn);
+    if(spawnTimer>spawnInterval){
+      spawnTimer=0;
+      spawnAsteroid();
+    }
+
+    for(let i=helpers.length-1;i>=0;i--){
+      const h=helpers[i]; h.timer-=dt;
+      if(h.timer<=0) helpers.splice(i,1);
+    }
+    if(superMode){
+      superModeTimer-=dt;
+      if(superModeTimer<=0) superMode=null;
+    }
+
+    drawBullets(dt);
+    drawEnemyBullets(dt);
+    drawAsteroids(dt);
+    drawPowerUps(dt);
+    handleBulletAsteroidCollisions();
+    handlePlayerAsteroidCollisions();
+    handleEnemyBulletCollisions();
+    handlePlayerPowerUpCollisions();
+    drawHelpers(dt);
+    drawPlayer();
+    updateHUD();
+
+    if(score>0 && gameMode==="endless") checkUnlocks();
+
+  }else{
+    drawBullets(dt);
+    drawEnemyBullets(dt);
+    drawAsteroids(dt);
+    drawPowerUps(dt);
+    drawHelpers(dt);
+    drawPlayer();
+    if(gameState!=="menu") updateHUD();
+  }
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
